@@ -1,0 +1,13 @@
+<style>
+  .section-{{ section.id }} {
+    padding-top: {{ section.settings.desk_indent_top }}px;
+    padding-bottom: {{ section.settings.desk_indent_bottom }}px;
+  }
+
+  @media screen and (max-width: 989px) {
+    .section-{{ section.id }} {
+      padding-top: {{ section.settings.mob_indent_top }}px;
+      padding-bottom: {{ section.settings.mob_indent_bottom }}px;
+    }
+  }
+</style>

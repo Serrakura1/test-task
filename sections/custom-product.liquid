@@ -1,0 +1,343 @@
+{{ 'custom-product.css' | asset_url | stylesheet_tag }}
+
+{% render 'indent-settings', section: section %}
+
+<div class="custom-product section-{{ section.id }}">
+  <div class="custom-product__container">
+    <div class="custom-product__wrap">
+      {% if product.images.size > 0 %}
+        <div class="custom-product__image">
+          {{ product.featured_image | image_url: width: 1000 | image_tag }}
+        </div>
+      {% endif %}
+      {% if section.blocks.size > 0 %}
+        <div class="custom-product__blocks">
+          {% for block in section.blocks %}
+            {% case block.type %}
+              {% when 'title' %}
+                <h2 class="custom-product__title" {{ block.shopify_attributes }}>
+                  {% if block.settings.product_title != blank %}
+                    {{ block.settings.product_title }}
+                  {% else %}
+                    {{ product.title }}
+                  {% endif %}
+                </h2>
+              {% when 'description' %}
+                <div class="custom-product__description" {{ block.shopify_attributes }}>
+                  {% if block.settings.product_description != blank %}
+                    {{ block.settings.product_description }}
+                  {% else %}
+                    {{ product.description }}
+                  {% endif %}
+                </div>
+              {% when 'price' %}
+                <div
+                  class="custom-product__price"
+                  data-price-wrapper
+                  data-product-id="{{ product.id }}"
+                  {{ block.shopify_attributes }}
+                >
+                  <span class="custom-product__price--current" data-price></span>
+                  <span class="custom-product__price--old" data-compare-at-price style="display:none;"></span>
+                </div>
+              {% when 'variants' %}
+                <div class="custom-product__variants" {{ block.shopify_attributes }}>
+                  <form id="variantForm">
+                    {% for option in product.options_with_values %}
+                      <label for="option-{{ forloop.index0 }}">
+                        {{ option.name }}
+                      </label>
+                      <select id="option-{{ forloop.index0 }}" name="options[]">
+                        {% for value in option.values %}
+                          <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                      </select>
+                    {% endfor %}
+                  </form>
+                </div>
+
+              {% when 'buy-btns' %}
+                <div class="custom-product__buy-btns" {{ block.shopify_attributes }}>
+                  <button
+                    type="button"
+                    name="add"
+                    class="product-form__submit button button--primary"
+                  >
+                    {{ 'products.product.add_to_cart' | t }}
+                  </button>
+                </div>
+
+              {% when 'user-info' %}
+                <div class="custom-product__user-info" {{ block.shopify_attributes }}>
+                  {% if block.settings.form_title != blank %}
+                    <div class="user-info__title">{{ block.settings.form_title }}</div>
+                  {% endif %}
+                  <form id="userInfoForm">
+                    <label>
+                      Ім'я*:
+                      <input type="text" name="first_name" required>
+                    </label>
+                    <label>
+                      Прізвище*:
+                      <input type="text" name="last_name" required>
+                    </label>
+                    <label>
+                      Email*:
+                      <input type="email" name="email" required>
+                    </label>
+                    <label>
+                      Телефон*:
+                      <input type="tel" name="phone" required>
+                    </label>
+                    <label>
+                      Поштовий індекс*:
+                      <input type="text" name="postal_code" required>
+                    </label>
+                    <label>
+                      Дата народження*:
+                      <input type="date" name="birthdate" required>
+                    </label>
+                    <label>
+                      Гендер*:
+                      <select name="gender" required>
+                        <option value="" disabled selected>Оберіть</option>
+                        <option value="male">Чоловік</option>
+                        <option value="female">Жінка</option>
+                        <option value="other">Інше</option>
+                      </select>
+                    </label>
+                    <label>
+                      Код користувача (необов’язково):
+                      <input type="text" name="user_code">
+                    </label>
+                  </form>
+                </div>
+            {% endcase %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  window.productVariants = [
+    {% for variant in product.variants %}
+      {
+        id: {{ variant.id }},
+        price: "{{ variant.price | money }}",
+        compare_at_price: {% if variant.compare_at_price > variant.price %}"{{ variant.compare_at_price | money }}"{% else %}null{% endif %},
+        available: {{ variant.available | json }},
+        options: [{% for opt in variant.options %}"{{ opt }}"{% unless forloop.last %}, {% endunless %}{% endfor %}]
+      }{% unless forloop.last %}, {% endunless %}
+    {% endfor %}
+  ];
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const selects = document.querySelectorAll('#variantForm select');
+    const addBtn = document.querySelector('[name="add"]');
+    const userInfoForm = document.getElementById('userInfoForm');
+    const priceWrapper = document.querySelector('[data-price-wrapper]');
+    const priceCurrent = priceWrapper.querySelector('[data-price]');
+    const priceOld = priceWrapper.querySelector('[data-compare-at-price]');
+
+    function getSelectedOptions() {
+      return Array.from(selects).map((s) => s.value);
+    }
+
+    function findMatchingVariant() {
+      const selectedOptions = getSelectedOptions();
+      return window.productVariants.find((variant) =>
+        variant.options.every((opt, index) => opt === selectedOptions[index])
+      );
+    }
+
+    function updateUI() {
+      const variant = findMatchingVariant();
+
+      if (variant) {
+        priceCurrent.textContent = variant.price;
+        if (variant.compare_at_price) {
+          priceOld.style.display = '';
+          priceOld.textContent = variant.compare_at_price;
+        } else {
+          priceOld.style.display = 'none';
+        }
+        addBtn.disabled = !variant.available;
+        addBtn.dataset.variantId = variant.id;
+      } else {
+        priceCurrent.textContent = '';
+        priceOld.style.display = 'none';
+        addBtn.disabled = true;
+        addBtn.removeAttribute('data-variant-id');
+      }
+    }
+
+    selects.forEach((select) => select.addEventListener('change', updateUI));
+
+    addBtn.addEventListener('click', function (event) {
+      event.preventDefault();
+
+      if (!userInfoForm.checkValidity()) {
+        userInfoForm.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(userInfoForm);
+      const properties = {};
+      for (const [key, value] of formData.entries()) {
+        if (value.trim() !== '') {
+          properties[key] = value;
+        }
+      }
+
+      const variant = findMatchingVariant();
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: variant.id,
+          quantity: 1,
+          properties: properties,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log(`Added product with properties: ${JSON.stringify(properties)}`);
+          alert(`Product ${variant.id} has been added to cart.`);
+          window.location.href = '/cart';
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Error by adding product to cart.');
+        });
+    });
+
+    updateUI();
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Custom Product",
+  "enabled_on": { "templates": ["product"] },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Indent settings"
+    },
+    {
+      "type": "range",
+      "id": "desk_indent_top",
+      "label": "Indent top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "desk_indent_bottom",
+      "label": "Indent bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "mob_indent_top",
+      "label": "Indent top (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "mob_indent_bottom",
+      "label": "Indent bottom (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "blocks": [
+    {
+      "type": "title",
+      "name": "Title",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "product_title",
+          "label": "Product title"
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "Description",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "product_description",
+          "label": "Product description"
+        }
+      ]
+    },
+    {
+      "type": "price",
+      "name": "Price",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Price from admin panel"
+        }
+      ]
+    },
+    {
+      "type": "variants",
+      "name": "Variant selector",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Variants from admin panel"
+        }
+      ]
+    },
+    {
+      "type": "buy-btns",
+      "name": "Buy buttons",
+      "limit": 1,
+      "settings": []
+    },
+    {
+      "type": "user-info",
+      "name": "User info",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "form_title",
+          "label": "Title"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Custom Product"
+    }
+  ]
+}
+{% endschema %}
