@@ -39,23 +39,47 @@
                 >
                   <span class="custom-product__price--current" data-price></span>
                   <span class="custom-product__price--old" data-compare-at-price style="display:none;"></span>
+                  <p class="error-message">
+                    <span class="error-message__red"
+                      >Sorry, no available events with this options, please, try another.</span
+                    >
+                    {% if block.settings.enable_schedule %}
+                      <span class="popup-current-schedule">Click here to see actuall events</span>
+                      <div class="fixed-schedule-popup">
+                        <div class="fixed-schedule-popup__content">
+                          <ul>
+                            {% for variant in product.variants %}
+                              <li>{{ variant.options | join: ', ' }} — {{ variant.price | money }}</li>
+                            {% endfor %}
+                          </ul>
+                          <div class="fixed-schedule-popup__closer">
+                            {{ 'icon-custom-close.svg' | inline_asset_content }}
+                          </div>
+                        </div>
+                      </div>
+                    {% endif %}
+                  </p>
                 </div>
               {% when 'variants' %}
-                <div class="custom-product__variants" {{ block.shopify_attributes }}>
+                <div class="custom-product__variants">
                   <form id="variantForm">
                     {% for option in product.options_with_values %}
-                      <label for="option-{{ forloop.index0 }}">
-                        {{ option.name }}
-                      </label>
+                      <label for="option-{{ forloop.index0 }}">{{ option.name }}</label>
                       <select id="option-{{ forloop.index0 }}" name="options[]">
                         {% for value in option.values %}
-                          <option value="{{ value }}">{{ value }}</option>
+                          <option
+                            value="{{ value }}"
+                            {% if forloop.first %}
+                              selected
+                            {% endif %}
+                          >
+                            {{ value }}
+                          </option>
                         {% endfor %}
                       </select>
                     {% endfor %}
                   </form>
                 </div>
-
               {% when 'buy-btns' %}
                 <div class="custom-product__buy-btns" {{ block.shopify_attributes }}>
                   <button
@@ -120,33 +144,18 @@
   </div>
 </div>
 
-<script>
-  window.productVariants = [
+<script id="productVariantsData" type="application/json">
+  [
     {% for variant in product.variants %}
       {
-        id: {{ variant.id }},
-        price: "{{ variant.price | money }}",
-        compare_at_price: {% if variant.compare_at_price > variant.price %}"{{ variant.compare_at_price | money }}"{% else %}null{% endif %},
-        available: {{ variant.available | json }},
-        options: [{% for opt in variant.options %}"{{ opt }}"{% unless forloop.last %}, {% endunless %}{% endfor %}]
+        "id": {{ variant.id }},
+        "price": "{{ variant.price | money }}",
+        "compare_at_price": {% if variant.compare_at_price > variant.price %}"{{ variant.compare_at_price | money }}"{% else %}null{% endif %},
+        "available": {{ variant.available | json }},
+        "options": [{% for opt in variant.options %}"{{ opt }}"{% unless forloop.last %}, {% endunless %}{% endfor %}]
       }{% unless forloop.last %}, {% endunless %}
     {% endfor %}
-  ];
-</script>
-
-
-<script>
-  window.productVariants = [
-    {% for variant in product.variants %}
-      {
-        id: {{ variant.id }},
-        price: "{{ variant.price | money }}",
-        compare_at_price: {% if variant.compare_at_price > variant.price %}"{{ variant.compare_at_price | money }}"{% else %}null{% endif %},
-        available: {{ variant.available | json }},
-        options: [{% for opt in variant.options %}"{{ opt }}"{% unless forloop.last %}, {% endunless %}{% endfor %}]
-      }{% unless forloop.last %}, {% endunless %}
-    {% endfor %}
-  ];
+  ]
 </script>
 
 <script defer="defer" src="{{ 'custom-product.js' | asset_url }}"></script>
@@ -234,6 +243,12 @@
         {
           "type": "paragraph",
           "content": "Price from admin panel"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_schedule",
+          "label": "Enable schedule popup with options?",
+          "default": true
         }
       ]
     },

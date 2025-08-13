@@ -87,6 +87,98 @@
   text-decoration: line-through;
 }
 
+.error-message {
+  display: none;
+  padding: 0;
+  margin: 0;
+}
+
+.error-message__red {
+  color: red;
+  font-size: 16px;
+}
+
+.popup-current-schedule {
+  display: block;
+}
+
+.popup-current-schedule {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.popup-current-schedule:hover {
+  opacity: 0.7;
+}
+
+.fixed-schedule-popup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  position: fixed;
+  background-color: #0000005e;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.fixed-schedule-popup.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.fixed-schedule-popup__content {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  position: relative;
+}
+
+.fixed-schedule-popup__content ul {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.fixed-schedule-popup__closer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1/1;
+  width: 30px;
+  height: 30px;
+  background-color: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 99;
+  cursor: pointer;
+  border: 1px solid black;
+  padding: 3px;
+  transition: all 0.3s ease;
+}
+
+.fixed-schedule-popup__closer:hover {
+  rotate: 90deg;
+}
+
+.fixed-schedule-popup__closer svg,
+.fixed-schedule-popup__closer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
 @media screen and (max-width: 749px) {
   .custom-product__wrap {
     flex-direction: column;
